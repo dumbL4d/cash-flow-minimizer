@@ -292,6 +292,15 @@ bool validateName(string fullName)
 
 bool validateUserName(string userName) 
 {
+<<<<<<< HEAD
+=======
+    // !----------------------------------
+    // 1. should not be longer than 15 characters
+    // 2. should not contain any special character except underscore
+    // 3. there should not be any two same usernames in the file
+    // !----------------------------------
+
+>>>>>>> cd1f3b7c5722a0913faff58a8a3d0a5ae3ae1180
     // 1. Check if the username is longer than 15 characters
     if (userName.length() > 15) {
         cout << "Username cannot be longer than 15 characters." << endl;
