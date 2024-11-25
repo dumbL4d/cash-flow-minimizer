@@ -9,13 +9,14 @@
 #include <chrono>
 #include <array>
 #include <thread>
+#include <regex>
 
 using namespace std;
 using namespace chrono;
 
 class person {
 public:
-    string personUsername;    // TODO: make a function that takes input of username and read the whole file for the same username id if the id is found, print error else, write the data in the file also the username can't be same as the person name
+    string personUsername;
     string nameOfPerson;
     array<char, 6> modesOfPayment;
 
@@ -23,20 +24,31 @@ public:
 
     // Serialize to binary format
     void writeToFile(ofstream& file) const {
+        size_t usernameLength = personUsername.size();
+        file.write(reinterpret_cast<const char*>(&usernameLength), sizeof(usernameLength));  // Write length of username
+        file.write(personUsername.c_str(), usernameLength);  // Write username string
+
         size_t nameLength = nameOfPerson.size();
         file.write(reinterpret_cast<const char*>(&nameLength), sizeof(nameLength));  // Write length of the name
         file.write(nameOfPerson.c_str(), nameLength);  // Write name string
         file.write(reinterpret_cast<const char*>(modesOfPayment.data()), modesOfPayment.size());  // Write payment modes
     }
 
+
     // Deserialize from binary format
     void readFromFile(ifstream& file) {
+        size_t usernameLength;
+        file.read(reinterpret_cast<char*>(&usernameLength), sizeof(usernameLength));  // Read length of username
+        personUsername.resize(usernameLength);
+        file.read(&personUsername[0], usernameLength);  // Read username string
+    
         size_t nameLength;
         file.read(reinterpret_cast<char*>(&nameLength), sizeof(nameLength));  // Read length of the name
         nameOfPerson.resize(nameLength);
         file.read(&nameOfPerson[0], nameLength);  // Read name string
         file.read(reinterpret_cast<char*>(modesOfPayment.data()), modesOfPayment.size());  // Read payment modes
     }
+
 
     bool setPaymentMode(const string& paymentMode) {
         static const array<string, 6> validModes = {"Cash", "PayTM", "GPay", "PhonePe", "Credit Card", "Debit Card"};
@@ -61,6 +73,7 @@ public:
 
 // ! ------------------------------------------------------- ALL FUNCTION DECLARATIONS -------------------------------------------------------
 bool validateName(string fullName);
+bool validateUserName(string userName);
 bool validateAmount(string amount);
 void createNewParticipant();
 void editParticipantPaymentModes();     // TODO: Edit the payment mode of the participant based on username
@@ -107,9 +120,22 @@ void createNewParticipant() {
             }
         } while (!validMode);  // Keep asking until a valid payment mode is provided
     }
+    cout << "Enter username: ";
+    getline(cin, p.personUsername);
 
-    p.writeToFile(file);
-    cout << "Participant details added successfully." << endl;
+    if (validateUserName(p.personUsername) && validateName(p.nameOfPerson)) {
+        p.writeToFile(file);
+        cout << "Participant details added successfully." << endl;
+    }else {
+        cout << "Participant couldn't be added." << endl;
+        cout << "Would you like to try again?(y/n): ";
+        char ch;
+        if(ch == 'y' || ch == 'Y') {
+            createNewParticipant();
+        }else {
+            // ! MAIN MENU FUNCTION WILL BE CALLED HERE
+        }
+    }
 
     this_thread::sleep_for(seconds(2));
     file.close();
@@ -171,6 +197,7 @@ void displayParticipants() {
         p.readFromFile(file);
         if (file) {  // Check if we read a valid person object
             cout << "Name of person " << ++count << ": " << p.nameOfPerson << endl;
+            cout << "UserName of person " << count << ": " << p.personUsername << endl;
             cout << "Payment Modes Available: ";
 
             // Loop through the payment modes and print those that are '1'
@@ -263,6 +290,45 @@ bool validateName(string fullName)
     }
 }
 
+bool validateUserName(string userName) 
+{
+    // 1. Check if the username is longer than 15 characters
+    if (userName.length() > 15) {
+        cout << "Username cannot be longer than 15 characters." << endl;
+        return false;
+    }
+
+    // 2. Check if the username contains only letters, digits, and underscores
+    regex validUsernamePattern("^[a-zA-Z0-9_]+$");
+    if (!regex_match(userName, validUsernamePattern)) {
+        cout << "Username can only contain letters, digits, and underscores." << endl;
+        return false;
+    }
+
+    // 3. Check if the username already exists in the file
+    ifstream file("participants.dat", ios::binary);
+    if (!file.is_open()) {
+        cout << "Error reading participants file." << endl;
+        return false;
+    }
+
+    person p;
+    while (file) {
+        p.readFromFile(file);  // Read a person object from the file
+        if (file) {  // Check if a valid person object is read
+            if (p.personUsername == userName) {
+                cout << "Username already exists. Please choose another username." << endl;
+                file.close();
+                return false;  // Username already exists in the file
+            }
+        }
+    }
+
+    // If no issues were found, the username is valid
+    file.close();
+    return true;
+}
+
 bool validateAmount(string amount)
 {
     bool digitCheck = true;
@@ -306,6 +372,8 @@ bool validateAmount(string amount)
 
 int main()
 {
+    createNewParticipant();
+    createNewParticipant();
     displayParticipants();
     return 0;
 }
