@@ -94,11 +94,47 @@ public:
     string payee;
     string debtor;
     string amount;
+
+    // Serialize to binary format
+    void writeToFile(ofstream& file) const {
+        // Write the lengths of the strings first
+        size_t payeeLength = payee.size();
+        size_t debtorLength = debtor.size();
+        size_t amountLength = amount.size();
+
+        file.write(reinterpret_cast<const char*>(&payeeLength), sizeof(payeeLength));
+        file.write(payee.c_str(), payeeLength); //Write payee string
+
+        file.write(reinterpret_cast<const char*>(&debtorLength), sizeof(debtorLength));
+        file.write(debtor.c_str(), debtorLength); //Write debtor string
+
+        file.write(reinterpret_cast<const char*>(&amountLength), sizeof(amountLength));
+        file.write(amount.c_str(), amountLength); //Write amount string
+    }
+
+    // Deserialize to binary format
+    void readFromFile(ifstream& file) {
+        size_t payeeLength, debtorLength, amountLength;
+
+        // Read the lengths of the strings
+        file.read(reinterpret_cast<char*>(&payeeLength), sizeof(payeeLength));
+        payee.resize(payeeLength);
+        file.read(&payee[0], payeeLength);
+
+        file.read(reinterpret_cast<char*>(&debtorLength), sizeof(debtorLength));
+        debtor.resize(debtorLength);
+        file.read(&debtor[0], debtorLength);
+
+        file.read(reinterpret_cast<char*>(&amountLength), sizeof(amountLength));
+        amount.resize(amountLength);
+        file.read(&amount[0], amountLength);
+    }
 };
 
 // ! ------------------------------------------------------- ALL FUNCTION DECLARATIONS -------------------------------------------------------
 bool validateName(string fullName);
-bool validateUserName(string userName);
+bool validateParticipantUserName(string userName);
+bool validateTransactionUserName(string userName);
 bool validateAmount(string amount);
 void createNewParticipant();
 void recordTransaction();
@@ -148,7 +184,7 @@ void createNewParticipant() {
     cout << "Enter username: ";
     getline(cin, p.personUsername);
 
-    if (validateUserName(p.personUsername) && validateName(p.nameOfPerson)) {
+    if (validateParticipantUserName(p.personUsername) && validateParticipantUserName(p.nameOfPerson)) {
         p.writeToFile(file);
         cout << "Participant details added successfully." << endl;
     }else {
@@ -168,43 +204,50 @@ void createNewParticipant() {
 
 void recordTransaction()
 {
-    fstream file;
+    ofstream file("transactions.dat", ios::binary | ios::app);
 
-    transaction *t = new transaction;
+    transaction t;
 
+    // Input payee username
     do
     {
-        cout << "Enter payee name: ";
-        getline(cin, t->payee);
-    } while (!validateName(t->payee));
+        cout << "Enter payee username: ";
+        getline(cin, t.payee);
+    } while (!validateTransactionUserName(t.payee));
 
+    // Input debtor username
     do
     {
-        cout << "Enter debtor name: ";
-        getline(cin, t->debtor);
-    } while (!validateName(t->debtor));
+        cout << "Enter debtor username: ";
+        getline(cin, t.debtor);
+    } while (!validateTransactionUserName(t.debtor));
 
+    // Input amount
     do
     {
         cout << "Enter amount: ";
-        getline(cin, t->amount);
-    } while (!validateAmount(t->amount));
-
-    file.open("transactions.dat", ios::binary | ios::in | ios::out | ios::app);
+        getline(cin, t.amount);
+    } while (!validateAmount(t.amount));
 
     if (!file.is_open())
     {
         cout << "Transaction not recorded." << endl;
+        cout << "Would you like to try again?(y/n): ";
+        char ch;
+        if(ch == 'y' || ch == 'Y') {
+            recordTransaction();
+        }else {
+            main_menu();
+        }
     }
     else
     {
-        file.write(reinterpret_cast<const char*>(&t), sizeof(transaction));
+        t.writeToFile(file);
         cout << "Transaction recorded successfully. " << endl;
     }
 
+    this_thread::sleep_for(seconds(2));
     file.close();
-
-    delete t;
 }
 
 void displayParticipants() {
@@ -242,13 +285,15 @@ void displayParticipants() {
         }
     }
 
+    if(!count){
+        cout << "No participants found." << endl;
+    }
+    
     file.close();
 }
 
 void displayTransactions(){
-    ifstream file;
-
-    file.open("transactions.dat", ios::binary);
+    ifstream file("transactions.dat", ios::binary);
 
     if(!file.is_open()){
         cout << "Error reading transactions file." << endl;
@@ -256,10 +301,21 @@ void displayTransactions(){
     }
 
     transaction t;
+    int count = 0;
 
-    while (file.read(reinterpret_cast<char*>(&t), sizeof(transaction)))
-    {
-        cout << t.debtor << " owes " << t.amount << " to " << t.payee << endl;
+    while (file) {
+        t.readFromFile(file); 
+        if (file) {  // Check if we read a valid transaction object
+            cout << "Transaction " << ++count << ": " << endl;
+            cout << "Username of Payee: " << t.payee << endl;
+            cout << "Username of Debtor: " << t.debtor << endl; 
+            cout << "Amount: " << t.amount << endl;  
+            cout << "\n" << endl;
+        }
+    }
+
+    if(!count){
+        cout << "No transactions found." << endl;
     }
     
     file.close();
@@ -574,31 +630,31 @@ void main_menu() {
 
     // Menu content
     string menu[] = {
-        "+-------------------------------------+",
-        "|             Main Menu:              |",
-        "+-------------------------------------+",
-        "| 1. Create New Participant           |",
-        "|                                     |",
-        "| 2. Record New Transaction           |",
-        "|                                     |",
-        "| 3. Display Participant Details      |",
-        "|                                     |",
-        "| 4. Display Sorted Participants      |",
-        "|                                     |",
-        "| 5. Display Transactions             |",
-        "|                                     |",
-        "| 6. Display Transactions Descending  |",
-        "|                                     |",
-        "| 7. Edit Participant Payment Modes   |",
-        "|                                     |",
-        "| 8. Edit Transaction Amount          |",
-        "|                                     |",
-        "| 9. Delete Recent Transaction        |",
-        "|                                     |",
-        "| 10. Minimize Cashflow               |",
-        "|                                     |",
-        "| 11. Exit                            |",
-        "+-------------------------------------+"
+        "+---------------------------------------------+",
+        "|             Main Menu:                      |",
+        "+---------------------------------------------+",
+        "| 1. Create New Participant                   |",
+        "|                                             |",
+        "| 2. Record New Transaction                   |",
+        "|                                             |",
+        "| 3. Display Participant Details              |",
+        "|                                             |",
+        "| 4. Display Participants Alphabetically      |",
+        "|                                             |",
+        "| 5. Display Transactions                     |",
+        "|                                             |",
+        "| 6. Display Transactions Descending          |",
+        "|                                             |",
+        "| 7. Edit Participant Payment Modes           |",
+        "|                                             |",
+        "| 8. Edit Transaction Amount                  |",
+        "|                                             |",
+        "| 9. Delete Recent Transaction                |",
+        "|                                             |",
+        "| 10. Minimize Cashflow                       |",
+        "|                                             |",
+        "| 11. Exit                                    |",
+        "+---------------------------------------------+"
     };
 
     // Get the dimensions of the console window
@@ -634,7 +690,7 @@ void main_menu() {
     }
 }
 
-bool validateUserName(string userName) 
+bool validateParticipantUserName(string userName) 
 {
     // !----------------------------------
     // 1. should not be longer than 15 characters
@@ -677,6 +733,32 @@ bool validateUserName(string userName)
     // If no issues were found, the username is valid
     file.close();
     return true;
+}
+
+bool validateTransactionUserName(string userName) 
+{
+    //Check if the username already exists in the participants file
+    ifstream file("participants.dat", ios::binary);
+    if (!file.is_open()) {
+        cout << "Error reading participants file." << endl;
+        return false;
+    }
+
+    person p;
+    while (file) {
+        p.readFromFile(file);  // Read a person object from the file
+        if (file) {  // Check if a valid person object is read
+            if (p.personUsername == userName) {
+                file.close();
+                return true;  // Username already exists in the file
+            }
+        }
+    }
+
+    // If username not found in participants file, return error
+    cout << "Username not found" << endl;
+    file.close();
+    return false;
 }
 
 bool validateAmount(string amount)
