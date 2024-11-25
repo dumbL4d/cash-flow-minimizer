@@ -76,13 +76,13 @@ bool validateName(string fullName);
 bool validateUserName(string userName);
 bool validateAmount(string amount);
 void createNewParticipant();
-void editParticipantPaymentModes();     // TODO: Edit the payment mode of the participant based on username
 void recordTransaction();
+void displayTransactions();
+void displayParticipants();
+void editParticipantPaymentModes();     // TODO: Edit the payment mode of the participant based on username
 void editTransactionAmount();
 void deleteRecentTransaction();
-void displayParticipants();
 void displayParticipantsAlphabetical();
-void displayTransactions();
 void displayTransactionWithDescendingAmount();
 void minimizeCashFlow();
 void deleteParticipant();   // TODO: Deletes the participant's details based on username (THIS FUNCTION IS "OPTIONAL")
@@ -240,6 +240,127 @@ void displayTransactions(){
     file.close();
 }
 
+void editParticipantPaymentModes() {
+    string username;
+    cout << "Enter the username of the participant whose payment modes you want to edit: ";
+    getline(cin, username);
+
+    // Read all participants into a vector
+    ifstream file("participants.dat", ios::binary);
+    if (!file.is_open()) {
+        cout << "Error opening participants file." << endl;
+        return;
+    }
+
+    vector<person> participants;
+    person p;
+
+    // Read all participants from file into the vector
+    while (file) {
+        p.readFromFile(file);
+        if (file) {
+            participants.push_back(p);  // Add the participant to the vector
+        }
+    }
+    file.close();  // Close the file after reading
+
+    // Search for the participant by username
+    bool found = false;
+    size_t participantIndex = 0;
+    for (size_t i = 0; i < participants.size(); ++i) {
+        if (participants[i].personUsername == username) {
+            found = true;
+            participantIndex = i;
+            break;
+        }
+    }
+
+    if (!found) {
+        cout << "Participant with username " << username << " not found." << endl;
+        return;
+    }
+
+    // Participant found, display current payment modes
+    p = participants[participantIndex];  // Get the participant to edit
+    cout << "Current payment modes for " << p.nameOfPerson << " (" << p.personUsername << "): ";
+    for (int i = 0; i < 6; ++i) {
+        if (p.modesOfPayment[i] == '1') {
+            switch (i) {
+                case 0: cout << "Cash "; break;
+                case 1: cout << "PayTM "; break;
+                case 2: cout << "GPay "; break;
+                case 3: cout << "PhonePe "; break;
+                case 4: cout << "Credit Card "; break;
+                case 5: cout << "Debit Card "; break;
+            }
+        }
+    }
+    cout << endl;
+
+    // Ask if user wants to add or delete a payment mode
+    char actionChoice;
+    cout << "Do you want to add (a) or delete (d) a payment mode? (a/d): ";
+    cin >> actionChoice;
+    cin.ignore();  // To ignore any leftover newline character from input buffer
+
+    if (actionChoice == 'a') {
+        // Allow user to add a new payment mode
+        int modeChoice;
+        cout << "Enter the payment mode to add (0: Cash, 1: PayTM, 2: GPay, 3: PhonePe, 4: Credit Card, 5: Debit Card): ";
+        cin >> modeChoice;
+
+        if (modeChoice >= 0 && modeChoice <= 5) {
+            // Add the selected payment mode if it's not already added
+            if (p.modesOfPayment[modeChoice] == '1') {
+                cout << "This payment mode is already selected." << endl;
+            } else {
+                // Mark the selected mode as '1' (selected)
+                p.modesOfPayment[modeChoice] = '1';  
+                cout << "Payment mode added successfully." << endl;
+            }
+        } else {
+            cout << "Invalid choice. Please enter a number between 0 and 5." << endl;
+        }
+    } else if (actionChoice == 'd') {
+        // Allow user to delete an existing payment mode
+        int modeChoice;
+        cout << "Enter the payment mode to delete (0: Cash, 1: PayTM, 2: GPay, 3: PhonePe, 4: Credit Card, 5: Debit Card): ";
+        cin >> modeChoice;
+
+        if (modeChoice >= 0 && modeChoice <= 5) {
+            if (p.modesOfPayment[modeChoice] == '0') {
+                cout << "This payment mode is not selected." << endl;
+            } else {
+                // Set the selected mode to '0' (deleted)
+                p.modesOfPayment[modeChoice] = '0';  
+                cout << "Payment mode deleted successfully." << endl;
+            }
+        } else {
+            cout << "Invalid choice. Please enter a number between 0 and 5." << endl;
+        }
+    } else {
+        cout << "Invalid choice. Please enter 'a' to add or 'd' to delete." << endl;
+        return;
+    }
+
+    // Update the participant in the vector with the updated data
+    participants[participantIndex] = p;
+
+    // Reopen the file for writing the updated list of participants
+    ofstream outFile("participants.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
+    if (!outFile.is_open()) {
+        cout << "Error opening participants file for writing." << endl;
+        return;
+    }
+
+    // Write all participants back to the file, including the updated one
+    for (size_t i = 0; i < participants.size(); ++i) {
+        participants[i].writeToFile(outFile);  // Write each participant's data to the file
+    }
+
+    outFile.close();  // Close the output file
+}
+
 bool validateName(string fullName)
 {
     bool digitCheck = false;
@@ -378,8 +499,9 @@ bool validateAmount(string amount)
 
 int main()
 {
-    createNewParticipant();
-    createNewParticipant();
+    // createNewParticipant();
+    // createNewParticipant();
+    // editParticipantPaymentModes();
     displayParticipants();
     return 0;
 }
