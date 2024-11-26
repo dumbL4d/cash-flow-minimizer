@@ -27,8 +27,10 @@ public:
     string nameOfPerson;
     array<char, 6> modesOfPayment;
     string designation;
+    int netAmount;
+    set<string> paymentTypes;
 
-    person() : nameOfPerson(""), modesOfPayment({'0', '0', '0', '0', '0', '0'}) {}
+    person() : nameOfPerson(""), modesOfPayment({'0', '0', '0', '0', '0', '0'}), netAmount(0) {}
 
     // Serialize to binary format
     void writeToFile(ofstream& file) const {
@@ -314,20 +316,20 @@ void recordTransaction()
     ofstream file("transactions.dat", ios::binary | ios::app);
 
     transaction t;
-
-    // Input payee username
-    do
-    {
-        cout << "Enter payee username: ";
-        getline(cin, t.payee);
-    } while (!validateTransactionUserName(t.payee));
-
+    
     // Input debtor username
     do
     {
         cout << "Enter debtor username: ";
         getline(cin, t.debtor);
     } while (!validateTransactionUserName(t.debtor));
+    
+    // Input payee username
+    do
+    {
+        cout << "Enter payee username: ";
+        getline(cin, t.payee);
+    } while (!validateTransactionUserName(t.payee));
 
     // Input amount
     do
@@ -891,6 +893,348 @@ void displayParticipantsAlphabetically() {
     }
 }
 
+int getMinIndex(person listOfNetAmounts[], int numberOfParticipants)
+{
+    int min = INT_MAX, minIndex = -1;
+    for (int i = 0; i < numberOfParticipants; i++)
+    {
+        if (listOfNetAmounts[i].netAmount == 0)
+            continue;
+
+        if (listOfNetAmounts[i].netAmount < min)
+        {
+            minIndex = i;
+            min = listOfNetAmounts[i].netAmount;
+        }
+    }
+    return minIndex;
+}
+
+int getSimpleMaxIndex(person listOfNetAmounts[], int numberOfParticipants)
+{
+    int max = INT_MIN, maxIndex = -1;
+    for (int i = 0; i < numberOfParticipants; i++)
+    {
+        if (listOfNetAmounts[i].netAmount == 0)
+            continue;
+
+        if (listOfNetAmounts[i].netAmount > max)
+        {
+            maxIndex = i;
+            max = listOfNetAmounts[i].netAmount;
+        }
+    }
+    return maxIndex;
+}
+
+pair<int, string> getMaxIndex(person listOfNetAmounts[], int numberOfParticipants, int minIndex, person input[], int maxNumTypes)
+{
+    int max = INT_MIN;
+    int maxIndex = -1;
+    string matchingType;
+
+    for (int i = 0; i < numberOfParticipants; i++)
+    {
+        if (listOfNetAmounts[i].netAmount == 0)
+            continue;
+
+        if (listOfNetAmounts[i].netAmount < 0)
+            continue;
+
+        vector<string> v(maxNumTypes);
+        vector<string>::iterator ls = set_intersection(listOfNetAmounts[minIndex].paymentTypes.begin(), listOfNetAmounts[minIndex].paymentTypes.end(), listOfNetAmounts[i].paymentTypes.begin(), listOfNetAmounts[i].paymentTypes.end(), v.begin());
+
+        if ((ls - v.begin()) != 0 && max < listOfNetAmounts[i].netAmount)
+        {
+            max = listOfNetAmounts[i].netAmount;
+            maxIndex = i;
+            matchingType = *(v.begin());
+        }
+    }
+
+    // if there is NO such max which has a common type with any remaining banks then maxIndex has -1
+    //  also return the common payment type
+    return make_pair(maxIndex, matchingType);
+}
+
+void printAns(vector<vector<pair<int, string>>> ansGraph, int numberOfParticipants, person input[])
+{
+    cout << "\nThe transactions for minimum cash flow are as follows : \n\n";
+    for (int i = 0; i < numberOfParticipants; i++)
+    {
+        for (int j = 0; j < numberOfParticipants; j++)
+        {
+            if (i == j)
+                continue;
+
+            if (ansGraph[i][j].first != 0 && ansGraph[j][i].first != 0)
+            {
+
+                if (ansGraph[i][j].first == ansGraph[j][i].first)
+                {
+                    ansGraph[i][j].first = 0;
+                    ansGraph[j][i].first = 0;
+                }
+                else if (ansGraph[i][j].first > ansGraph[j][i].first)
+                {
+                    ansGraph[i][j].first -= ansGraph[j][i].first;
+                    ansGraph[j][i].first = 0;
+
+                    cout << input[i].nameOfPerson << "(" << input[i].personUsername << ")" << " pays Rs" << ansGraph[i][j].first << "to " << input[j].nameOfPerson << "(" << input[j].personUsername << ")" << " via " << ansGraph[i][j].second << endl;
+                }
+                else
+                {
+                    ansGraph[j][i].first -= ansGraph[i][j].first;
+                    ansGraph[i][j].first = 0;
+
+                    cout << input[j].nameOfPerson << "(" << input[j].personUsername << ")" << " pays Rs " << ansGraph[j][i].first << " to " << input[i].nameOfPerson << "(" << input[i].personUsername << ")" << " via " << ansGraph[j][i].second << endl;
+                }
+            }
+            else if (ansGraph[i][j].first != 0)
+            {
+                cout << input[i].nameOfPerson << "(" << input[i].personUsername << ")" << " pays Rs " << ansGraph[i][j].first << " to " << input[j].nameOfPerson << "(" << input[j].personUsername << ")" << " via " << ansGraph[i][j].second << endl;
+            }
+            else if (ansGraph[j][i].first != 0)
+            {
+                cout << input[j].nameOfPerson << "(" << input[j].personUsername << ")" << " pays Rs " << ansGraph[j][i].first << " to " << input[i].nameOfPerson << "(" << input[i].personUsername << ")" << " via " << ansGraph[j][i].second << endl;
+            }
+
+            ansGraph[i][j].first = 0;
+            ansGraph[j][i].first = 0;
+        }
+    }
+    cout << "\n";
+}
+
+void settleDebts(int numberOfParticipants, person input[], unordered_map<string, int> &indexOf, int numberOfTransactions, vector<vector<int>> &graph, int maxNumTypes)
+{
+    // Find net amount of each Person has
+    person listOfNetAmounts[numberOfParticipants];
+
+    for (int b = 0; b < numberOfParticipants; b++)
+    {
+        listOfNetAmounts[b].personUsername = input[b].personUsername;
+        listOfNetAmounts[b].paymentTypes = input[b].paymentTypes;
+
+        int amount = 0;
+        // incoming edges
+        // column travers
+        for (int i = 0; i < numberOfParticipants; i++)
+        {
+            amount += (graph[i][b]);
+        }
+
+        // outgoing edges
+        // row traverse
+        for (int j = 0; j < numberOfParticipants; j++)
+        {
+            amount += ((-1) * graph[b][j]);
+        }
+
+        listOfNetAmounts[b].netAmount = amount;
+    }
+
+    vector<vector<pair<int, string>>> ansGraph(numberOfParticipants, vector<pair<int, string>>(numberOfParticipants, {0, ""})); // adjacency matrix
+
+    // find min and max net amount
+    int numZeroNetAmounts = 0;
+
+    for (int i = 0; i < numberOfParticipants; i++)
+    {
+        if (listOfNetAmounts[i].netAmount == 0)
+            numZeroNetAmounts++;
+    }
+    while (numZeroNetAmounts != numberOfParticipants)
+    {
+
+        int minIndex = getMinIndex(listOfNetAmounts, numberOfParticipants);
+        pair<int, string> maxAns = getMaxIndex(listOfNetAmounts, numberOfParticipants, minIndex, input, maxNumTypes);
+
+        int maxIndex = maxAns.first;
+
+        if (maxIndex == -1)
+        {
+
+            (ansGraph[minIndex][0].first) += abs(listOfNetAmounts[minIndex].netAmount);
+            (ansGraph[minIndex][0].second) = *(input[minIndex].paymentTypes.begin());
+
+            int simpleMaxIndex = getSimpleMaxIndex(listOfNetAmounts, numberOfParticipants);
+            (ansGraph[0][simpleMaxIndex].first) += abs(listOfNetAmounts[minIndex].netAmount);
+            (ansGraph[0][simpleMaxIndex].second) = *(input[simpleMaxIndex].paymentTypes.begin());
+
+            listOfNetAmounts[simpleMaxIndex].netAmount += listOfNetAmounts[minIndex].netAmount;
+            listOfNetAmounts[minIndex].netAmount = 0;
+
+            if (listOfNetAmounts[minIndex].netAmount == 0)
+                numZeroNetAmounts++;
+
+            if (listOfNetAmounts[simpleMaxIndex].netAmount == 0)
+                numZeroNetAmounts++;
+        }
+        else
+        {
+            int transactionAmount = min(abs(listOfNetAmounts[minIndex].netAmount), listOfNetAmounts[maxIndex].netAmount);
+
+            (ansGraph[minIndex][maxIndex].first) += (transactionAmount);
+            (ansGraph[minIndex][maxIndex].second) = maxAns.second;
+
+            listOfNetAmounts[minIndex].netAmount += transactionAmount;
+            listOfNetAmounts[maxIndex].netAmount -= transactionAmount;
+
+            if (listOfNetAmounts[minIndex].netAmount == 0)
+                numZeroNetAmounts++;
+
+            if (listOfNetAmounts[maxIndex].netAmount == 0)
+                numZeroNetAmounts++;
+        }
+    }
+
+    printAns(ansGraph, numberOfParticipants, input);
+}
+
+void minimizeCashFlow()
+{
+    ifstream participantFile("participants.dat", ios::binary);
+
+    if (!participantFile.is_open())
+    {
+        cout << "Error reading participants file." << endl;
+        return;
+    }
+
+    person p;
+    int numberOfParticipants = 0;
+
+    while (participantFile)
+    {
+        p.readFromFile(participantFile);
+        if (participantFile)
+        {
+            ++numberOfParticipants;
+        }
+    }
+
+    if (!numberOfParticipants)
+    {
+        cout << "No participants found." << endl;
+        return;
+    }
+
+    participantFile.close();
+
+    person input[numberOfParticipants]; // Array of Participant objects
+    int maxNumTypes; // Maximum number of payment mode types possible from super participant
+    unordered_map<string, int> indexOf; // Stores Index Of Person Object
+
+    ifstream participantFile2("participants.dat", ios::binary);
+
+    if (!participantFile2.is_open())
+    {
+        cout << "Error reading participants file." << endl;
+        return;
+    }
+
+    int participantIndex = 0;
+
+    while (participantFile2)
+    {
+        p.readFromFile(participantFile2);
+        if (participantFile2)
+        {
+            input[participantIndex].nameOfPerson = p.nameOfPerson;
+            input[participantIndex].personUsername = p.personUsername;
+            indexOf[input[participantIndex].personUsername] = participantIndex;
+
+            int numTypes = 0;
+            // Loop through the payment modes and print those that are '1'
+            for (int i = 0; i < 6; ++i)
+            {
+                if (p.modesOfPayment[i] == '1')
+                {
+                    switch (i)
+                    {
+                    case 0:
+                        input[participantIndex].paymentTypes.insert("Cash");
+                        break;
+                    case 1:
+                        input[participantIndex].paymentTypes.insert("PayTM");
+                        break;
+                    case 2:
+                        input[participantIndex].paymentTypes.insert("GPay");
+                        break;
+                    case 3:
+                        input[participantIndex].paymentTypes.insert("PhonePe");
+                        break;
+                    case 4:
+                        input[participantIndex].paymentTypes.insert("Credit Card");
+                        break;
+                    case 5:
+                        input[participantIndex].paymentTypes.insert("Debit Card");
+                        break;
+                    }
+                    numTypes++;
+                }
+            }
+            if (participantIndex == 0){
+                maxNumTypes = numTypes;
+            }
+            participantIndex++;
+        }
+    }
+
+    participantFile2.close();
+
+    ifstream transactionFile("transactions.dat", ios::binary);
+
+    if (!transactionFile.is_open())
+    {
+        cout << "Error reading transactions file." << endl;
+        return;
+    }
+
+    transaction t;
+    int numberOfTransactions = 0;
+
+    while (transactionFile)
+    {
+        t.readFromFile(transactionFile);
+        if (transactionFile)
+        { // Check if we read a valid transaction object
+            ++numberOfTransactions;
+        }
+    }
+
+    if (!numberOfTransactions)
+    {
+        cout << "No transactions found." << endl;
+    }
+
+    vector<vector<int>> graph(numberOfParticipants, vector<int>(numberOfParticipants, 0)); // adjacency matrix
+
+    transactionFile.close();
+
+    ifstream transactionFile2("transactions.dat", ios::binary);
+
+    if (!transactionFile2.is_open())
+    {
+        cout << "Error reading transactions file." << endl;
+        return;
+    }
+
+    while (transactionFile2)
+    {
+        t.readFromFile(transactionFile2);
+        if (transactionFile2)
+        { 
+            graph[indexOf[t.debtor]][indexOf[t.payee]] = stoi(t.amount); //Debtor has to pay payee x amount -> Graph[debtor][payee] = amount
+        }
+    }
+
+    transactionFile2.close();
+
+    settleDebts(numberOfParticipants, input, indexOf, numberOfTransactions, graph, maxNumTypes);
+}
+
 // Function for validating name
 bool validateName(string fullName)
 {
@@ -1250,15 +1594,5 @@ bool validateAmount(string amount)
 
 int main()
 {
-    // createNewParticipant();
-    // editParticipantPaymentModes();
-    // displayParticipants();
-    // displayParticipantsAlphabetically();
-    // intro();
-    // exitscr();
-    // editTransactionAmount();
-    // displayTransactions();
-    // deleteTransaction();
-    // deleteParticipant();
     return 0;
 }
