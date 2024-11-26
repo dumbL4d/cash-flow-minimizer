@@ -329,6 +329,71 @@ void displayTransactions(){
     file.close();
 }
 
+// Delete Transaction Function
+void deleteTransaction() {
+    ifstream file("transactions.dat", ios::binary);
+    if (!file.is_open()) {
+        cout << "Error reading transactions file." << endl;
+        return;
+    }
+
+    vector<transaction> transactions;
+    transaction t;
+    string payee, debtor, amount;
+
+    // Read all transactions into a vector
+    while (file) {
+        t.readFromFile(file);
+        if (file) {  // Check if we read a valid transaction object
+            transactions.push_back(t);  // Add the transaction to the vector
+        }
+    }
+    file.close();  // Close the file after reading
+
+    if (transactions.empty()) {
+        cout << "No transactions found." << endl;
+        return;
+    }
+
+    // Ask the user for the payee, debtor, or amount to identify the transaction to delete
+    cout << "Enter Payee Username to delete the transaction: ";
+    getline(cin, payee);
+    cout << "Enter Debtor Username to delete the transaction: ";
+    getline(cin, debtor);
+    cout << "Enter Amount of the transaction to delete: ";
+    getline(cin, amount);
+
+    // Search for the transaction to delete
+    bool transactionFound = false;
+    for (auto it = transactions.begin(); it != transactions.end(); ++it) {
+        if (it->payee == payee && it->debtor == debtor && it->amount == amount) {
+            transactions.erase(it);  // Remove the transaction
+            transactionFound = true;
+            cout << "Transaction deleted successfully." << endl;
+            break;
+        }
+    }
+
+    if (!transactionFound) {
+        cout << "Transaction not found." << endl;
+        return;
+    }
+
+    // Reopen the file for writing the updated list of transactions
+    ofstream outFile("transactions.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
+    if (!outFile.is_open()) {
+        cout << "Error opening transactions file for writing." << endl;
+        return;
+    }
+
+    // Write all remaining transactions back to the file
+    for (const auto& t : transactions) {
+        t.writeToFile(outFile);  // Write each transaction's data to the file
+    }
+
+    outFile.close();  // Close the output file
+}
+
 // Edit Transaction Amount Function
 void editTransactionAmount() {
     string payee, debtor;
@@ -761,7 +826,7 @@ void main_menu() {
         "|                                             |",
         "| 8. Edit Transaction Amount                  |",
         "|                                             |",
-        "| 9. Delete Recent Transaction                |",
+        "| 9. Delete Transaction                       |",
         "|                                             |",
         "| 10. Minimize Cashflow                       |",
         "|                                             |",
@@ -924,5 +989,7 @@ int main()
     // intro();
     // exitscr();
     // editTransactionAmount();
+    // displayTransactions();
+    // deleteTransaction();
     return 0;
 }
