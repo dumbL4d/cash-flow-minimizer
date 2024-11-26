@@ -394,6 +394,102 @@ void deleteTransaction() {
     outFile.close();  // Close the output file
 }
 
+// Delete Participant Function
+void deleteParticipant() {
+    string username;
+    
+    // Ask for the username of the participant to delete
+    cout << "Enter the username of the participant to delete: ";
+    getline(cin, username);
+
+    // Remove the participant from the participant file
+    ifstream file("participants.dat", ios::binary);
+    if (!file.is_open()) {
+        cout << "Error reading participants file." << endl;
+        return;
+    }
+
+    vector<person> participants;
+    person p;
+
+    // Read all participants into a vector
+    while (file) {
+        p.readFromFile(file);
+        if (file) {
+            participants.push_back(p);
+        }
+    }
+    file.close();  // Close the file after reading
+
+    // Find and remove the participant from the vector
+    bool participantFound = false;
+    auto it = remove_if(participants.begin(), participants.end(),
+                        [&username](const person& p) { return p.personUsername == username; });
+    
+    if (it != participants.end()) {
+        participants.erase(it, participants.end());  // Remove participant
+        participantFound = true;
+        cout << "Participant " << username << " deleted successfully." << endl;
+    } else {
+        cout << "Participant not found." << endl;
+        return;
+    }
+
+    // Reopen the participant file for writing the updated list
+    ofstream outFile("participants.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
+    if (!outFile.is_open()) {
+        cout << "Error opening participants file for writing." << endl;
+        return;
+    }
+
+    // Write the updated list of participants back to the file
+    for (const auto& p : participants) {
+        p.writeToFile(outFile);  // Write each participant's data to the file
+    }
+
+    outFile.close();  // Close the output file
+
+    // Now remove all transactions related to the deleted participant from the transaction file
+    ifstream txnFile("transactions.dat", ios::binary);
+    if (!txnFile.is_open()) {
+        cout << "Error reading transactions file." << endl;
+        return;
+    }
+
+    vector<transaction> transactions;
+    transaction t;
+
+    // Read all transactions into a vector
+    while (txnFile) {
+        t.readFromFile(txnFile);
+        if (txnFile) {
+            transactions.push_back(t);
+        }
+    }
+    txnFile.close();  // Close the transaction file after reading
+
+    // Filter out transactions involving the deleted participant
+    transactions.erase(remove_if(transactions.begin(), transactions.end(),
+                                 [&username](const transaction& txn) {
+                                     return txn.payee == username || txn.debtor == username;
+                                 }),
+                       transactions.end());
+
+    // Reopen the transaction file to rewrite the filtered list
+    ofstream txnOutFile("transactions.dat", ios::binary | ios::trunc);  // Open for writing and truncate
+    if (!txnOutFile.is_open()) {
+        cout << "Error opening transactions file for writing." << endl;
+        return;
+    }
+
+    // Write the remaining transactions back to the file
+    for (const auto& txn : transactions) {
+        txn.writeToFile(txnOutFile);  // Write each transaction's data to the file
+    }
+
+    txnOutFile.close();  // Close the transaction output file
+}
+
 // Edit Transaction Amount Function
 void editTransactionAmount() {
     string payee, debtor;
@@ -991,5 +1087,6 @@ int main()
     // editTransactionAmount();
     // displayTransactions();
     // deleteTransaction();
+    // deleteParticipant();
     return 0;
 }
