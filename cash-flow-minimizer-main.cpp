@@ -196,8 +196,8 @@ void displayParticipantsAlphabetically();
 void editTransactionAmount();
 void deleteTransaction();
 void deleteParticipant();
+void displayTransactionsInDescendingOrder();
 
-void displayTransactionWithDescendingAmount();
 void minimizeCashFlow();
 // ! ------------------------------------------------------------------------------------------------------------------------------------------
 
