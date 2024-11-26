@@ -149,7 +149,7 @@ void editParticipantPaymentModes();
 void displayParticipantsAlphabetically();
 
 void editTransactionAmount();
-void deleteRecentTransaction();
+void deleteTransaction();
 void displayTransactionWithDescendingAmount();
 void minimizeCashFlow();
 void deleteParticipant();   // TODO: Deletes the participant's details based on username (THIS FUNCTION IS "OPTIONAL")
@@ -327,6 +327,85 @@ void displayTransactions(){
     }
     
     file.close();
+}
+
+// Edit Transaction Amount Function
+void editTransactionAmount() {
+    string payee, debtor;
+    cout << "Enter the username of the payee: ";
+    getline(cin, payee);
+
+    cout << "Enter the username of the debtor: ";
+    getline(cin, debtor);
+
+    // Open the transactions file for reading and writing
+    ifstream inFile("transactions.dat", ios::binary);
+    if (!inFile.is_open()) {
+        cout << "Error reading transactions file." << endl;
+        return;
+    }
+
+    vector<transaction> transactions;
+    transaction t;
+
+    // Read all transactions into the vector
+    while (inFile) {
+        t.readFromFile(inFile);
+        if (inFile) {  // Check if we read a valid transaction object
+            transactions.push_back(t);
+        }
+    }
+    inFile.close();  // Close the input file after reading
+
+    // Search for the transaction by payee and debtor
+    bool found = false;
+    size_t transactionIndex = 0;
+    for (size_t i = 0; i < transactions.size(); ++i) {
+        if (transactions[i].payee == payee && transactions[i].debtor == debtor) {
+            found = true;
+            transactionIndex = i;
+            break;
+        }
+    }
+
+    if (!found) {
+        cout << "Transaction between " << payee << " and " << debtor << " not found." << endl;
+        return;
+    }
+
+    // Transaction found, display the current amount
+    t = transactions[transactionIndex];  // Get the transaction to edit
+    cout << "Current amount for transaction between " << t.payee << " and " << t.debtor << " is: " << t.amount << endl;
+
+    // Ask for the new amount
+    string newAmount;
+    cout << "Enter the new amount: ";
+    getline(cin, newAmount);
+
+    // Validate the new amount
+    if (!validateAmount(newAmount)) {
+        cout << "Invalid amount entered. Transaction not updated." << endl;
+        return;
+    }
+
+    // Update the amount of the found transaction
+    t.amount = newAmount;
+    transactions[transactionIndex] = t;  // Update the transaction in the vector
+
+    // Open the file again for writing the updated transactions
+    ofstream outFile("transactions.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
+    if (!outFile.is_open()) {
+        cout << "Error opening transactions file for writing." << endl;
+        return;
+    }
+
+    // Write all transactions back to the file, including the updated one
+    for (const auto& transaction : transactions) {
+        transaction.writeToFile(outFile);  // Write each transaction's data to the file
+    }
+
+    outFile.close();  // Close the output file
+    cout << "Transaction amount updated successfully." << endl;
 }
 
 void editParticipantPaymentModes() {
@@ -844,5 +923,6 @@ int main()
     // displayParticipantsAlphabetically();
     // intro();
     // exitscr();
+    // editTransactionAmount();
     return 0;
 }
