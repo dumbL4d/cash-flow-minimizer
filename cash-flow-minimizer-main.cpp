@@ -843,6 +843,6 @@ int main()
     // displayParticipants();
     // displayParticipantsAlphabetically();
     // intro();
-    exitscr();
+    // exitscr();
     return 0;
 }
