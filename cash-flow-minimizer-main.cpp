@@ -194,8 +194,9 @@ void createNewParticipant() {
         cout << "Participant details added successfully." << endl;
     }else {
         cout << "Participant couldn't be added." << endl;
-        cout << "Would you like to try again?(y/n): ";
         char ch;
+        cout << "Would you like to try again?(y/n): ";
+        cin >> ch;
         if(ch == 'y' || ch == 'Y') {
             createNewParticipant();
         }else {
@@ -237,8 +238,9 @@ void recordTransaction()
     if (!file.is_open())
     {
         cout << "Transaction not recorded." << endl;
-        cout << "Would you like to try again?(y/n): ";
         char ch;
+        cout << "Would you like to try again?(y/n): ";
+        cin >> ch;
         if(ch == 'y' || ch == 'Y') {
             recordTransaction();
         }else {
