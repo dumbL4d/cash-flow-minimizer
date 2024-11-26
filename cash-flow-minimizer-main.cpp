@@ -104,8 +104,9 @@ void createNewParticipant();
 void recordTransaction();
 void displayTransactions();
 void displayParticipants();
-void editParticipantPaymentModes();     // TODO: Edit the payment mode of the participant based on username
+void editParticipantPaymentModes();
 void displayParticipantsAlphabetically();
+
 void editTransactionAmount();
 void deleteRecentTransaction();
 void displayTransactionWithDescendingAmount();
