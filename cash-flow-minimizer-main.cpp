@@ -147,9 +147,9 @@ void displayTransactions();
 void displayParticipants();
 void editParticipantPaymentModes();
 void displayParticipantsAlphabetically();
-
 void editTransactionAmount();
 void deleteTransaction();
+
 void displayTransactionWithDescendingAmount();
 void minimizeCashFlow();
 void deleteParticipant();   // TODO: Deletes the participant's details based on username (THIS FUNCTION IS "OPTIONAL")
@@ -397,10 +397,10 @@ void deleteTransaction() {
 // Edit Transaction Amount Function
 void editTransactionAmount() {
     string payee, debtor;
-    cout << "Enter the username of the payee: ";
+    cout << "Enter the USERNAME of the payee: ";
     getline(cin, payee);
 
-    cout << "Enter the username of the debtor: ";
+    cout << "Enter the USERNAME of the debtor: ";
     getline(cin, debtor);
 
     // Open the transactions file for reading and writing
