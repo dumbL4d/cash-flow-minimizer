@@ -1005,6 +1005,7 @@ void editParticipantPaymentModes()
                 else
                 {
                     p.modesOfPayment[modeChoice] = '1';
+                    participants[participantIndex] = p;
                     cout << "Payment mode added successfully." << endl;
                 }
             }
