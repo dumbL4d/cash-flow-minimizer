@@ -588,6 +588,8 @@ void deleteParticipant() {
     if (username == superParticipant.personUsername) {
         cout << "You cannot delete the super participant!" << endl;  // Exit the function if trying to delete the super participant
         participantFound = true;
+        pauseScr();
+        return;
     }
 
     // Find and remove the participant from the vector
