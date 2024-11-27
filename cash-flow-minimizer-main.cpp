@@ -1,3 +1,4 @@
+#include <bits/stdc++.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -10,6 +11,9 @@
 #include <array>
 #include <thread>
 #include <regex>
+#include <set>
+#include <cstdio>
+#include <climits>
 
 using namespace std;
 using namespace chrono;
@@ -199,7 +203,7 @@ void editTransactionAmount();
 void deleteTransaction();
 void deleteParticipant();
 void displayTransactionsInDescendingOrder();
-
+void pauseScr();
 void minimizeCashFlow();
 // ! ------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -365,7 +369,6 @@ void displayParticipants() {
 
     if (!file.is_open()) {
         cout << "Error reading participants file." << endl;
-        return;
     }
 
     person p;
@@ -400,6 +403,7 @@ void displayParticipants() {
     }
     
     file.close();
+    pauseScr();
 }
 
 void displayTransactions(){
@@ -407,7 +411,6 @@ void displayTransactions(){
 
     if(!file.is_open()){
         cout << "Error reading transactions file." << endl;
-        return;
     }
 
     transaction t;
@@ -429,6 +432,7 @@ void displayTransactions(){
     }
     
     file.close();
+    pauseScr();
 }
 
 // Display Transaction in Descending Order
@@ -471,6 +475,7 @@ void displayTransactionsInDescendingOrder() {
         cout << "Amount: " << tr.amount << endl;
         cout << "\n" << endl;
     }
+    pauseScr();
 }
 
 // Delete Transaction Function
@@ -496,6 +501,7 @@ void deleteTransaction() {
 
     if (transactions.empty()) {
         cout << "No transactions found." << endl;
+        pauseScr();
         return;
     }
 
@@ -520,6 +526,7 @@ void deleteTransaction() {
 
     if (!transactionFound) {
         cout << "Transaction not found." << endl;
+        pauseScr();
         return;
     }
 
@@ -527,6 +534,7 @@ void deleteTransaction() {
     ofstream outFile("transactions.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
     if (!outFile.is_open()) {
         cout << "Error opening transactions file for writing." << endl;
+        pauseScr();
         return;
     }
 
@@ -536,6 +544,7 @@ void deleteTransaction() {
     }
 
     outFile.close();  // Close the output file
+    pauseScr();
 }
 
 // Delete Participant Function
@@ -574,35 +583,35 @@ void deleteParticipant() {
     }
     file.close();  // Close the file after reading
 
+    bool participantFound = false;
     // Check if the username matches the super participant's username
     if (username == superParticipant.personUsername) {
-        cout << "You cannot delete the super participant!" << endl;
-        return;  // Exit the function if trying to delete the super participant
+        cout << "You cannot delete the super participant!" << endl;  // Exit the function if trying to delete the super participant
+        participantFound = true;
     }
 
     // Find and remove the participant from the vector
-    bool participantFound = false;
-    auto it = remove_if(participants.begin() + 1, participants.end(),  // Start checking from the second participant onward
-                        [&username](const person& p) { return p.personUsername == username; });
+    int participantIndex;
+    for(int i = 1; i < participants.size(); i++) {
+        if (participants[i].personUsername == username) {
+            participantFound = true;
+            participantIndex = i;
+            break;
+        }
+    }
     
-    if (it != participants.end()) {
-        participants.erase(it, participants.end());  // Remove participant
-        participantFound = true;
+    if (participantFound) {
+        participants.erase(participants.begin() + participantIndex);  // Remove participant
         cout << "Participant " << username << " deleted successfully." << endl;
     } else {
         cout << "Participant not found." << endl;
-        return;
     }
 
     // Reopen the participant file for writing the updated list
     ofstream outFile("participants.dat", ios::binary | ios::trunc);  // Open for writing and truncate the file
     if (!outFile.is_open()) {
         cout << "Error opening participants file for writing." << endl;
-        return;
     }
-
-    // Write the super participant back to the file
-    superParticipant.writeToFile(outFile);
 
     // Write the updated list of participants (excluding the super participant) back to the file
     for (const auto& p : participants) {
@@ -615,7 +624,6 @@ void deleteParticipant() {
     ifstream txnFile("transactions.dat", ios::binary);
     if (!txnFile.is_open()) {
         cout << "Error reading transactions file." << endl;
-        return;
     }
 
     vector<transaction> transactions;
@@ -650,6 +658,7 @@ void deleteParticipant() {
     }
 
     txnOutFile.close();  // Close the transaction output file
+    pauseScr();
 }
 
 // Edit Transaction Amount Function
@@ -665,6 +674,7 @@ void editTransactionAmount() {
     ifstream inFile("transactions.dat", ios::binary);
     if (!inFile.is_open()) {
         cout << "Error reading transactions file." << endl;
+        pauseScr();
         return;
     }
 
@@ -693,6 +703,7 @@ void editTransactionAmount() {
 
     if (!found) {
         cout << "Transaction between " << payee << " and " << debtor << " not found." << endl;
+        pauseScr();
         return;
     }
 
@@ -708,6 +719,7 @@ void editTransactionAmount() {
     // Validate the new amount
     if (!validateAmount(newAmount)) {
         cout << "Invalid amount entered. Transaction not updated." << endl;
+        pauseScr();
         return;
     }
 
@@ -729,6 +741,7 @@ void editTransactionAmount() {
 
     outFile.close();  // Close the output file
     cout << "Transaction amount updated successfully." << endl;
+    pauseScr();
 }
 
 void editParticipantPaymentModes() {
@@ -740,7 +753,6 @@ void editParticipantPaymentModes() {
     ifstream file("participants.dat", ios::binary);
     if (!file.is_open()) {
         cout << "Error opening participants file." << endl;
-        return;
     }
 
     vector<person> participants;
@@ -774,12 +786,14 @@ void editParticipantPaymentModes() {
 
     if (!found) {
         cout << "Participant with username " << username << " not found." << endl;
+        pauseScr();
         return;
     }
 
     // If super participant is found, prevent modification
     if (isSuperParticipant) {
         cout << "The super participant's payment modes cannot be edited." << endl;
+        pauseScr();
         return;
     }
 
@@ -862,6 +876,7 @@ void editParticipantPaymentModes() {
     outFile.close();
 
     cout << "Payment modes updated successfully." << endl;
+    pauseScr();
 }
 
 // Function to display participants alphabetically
@@ -891,6 +906,7 @@ void displayParticipantsAlphabetically() {
     for (const auto& p : participants) {
         p.display();
     }
+    pauseScr();
 }
 
 int getMinIndex(person listOfNetAmounts[], int numberOfParticipants)
@@ -1114,7 +1130,7 @@ void minimizeCashFlow()
         }
     }
 
-    if (!numberOfParticipants)
+    if (numberOfParticipants == 0)
     {
         cout << "No participants found." << endl;
         return;
@@ -1233,6 +1249,7 @@ void minimizeCashFlow()
     transactionFile2.close();
 
     settleDebts(numberOfParticipants, input, indexOf, numberOfTransactions, graph, maxNumTypes);
+    pauseScr();
 }
 
 // Function for validating name
@@ -1315,10 +1332,17 @@ void get_console_size(int& width, int& height) {
     #endif
 }
 
+// Pause Function
+void pauseScr() {
+    cout << "Press Enter to continue...";
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Ignore any leftover input in the buffer
+    cin.get();  // Wait for the Enter key to be pressed
+}
+
 // INTRO SCREEN
 void intro() {
+    clear_screen();
     auto start = chrono::high_resolution_clock::now();
-
     cout << "\n\n\n\n\n\n" << endl;
     cout<<"                          ▄            ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄        ▄                                                              "<<endl; 
     cout<<"                         ▐░▌          ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░▌      ▐░▌                                                             "<<endl; 
@@ -1421,7 +1445,7 @@ void main_menu() {
     // Menu content
     string menu[] = {
         "+---------------------------------------------+",
-        "|             Main Menu:                      |",
+        "|                  Main Menu:                 |",
         "+---------------------------------------------+",
         "| 1. Create New Participant                   |",
         "|                                             |",
@@ -1441,9 +1465,13 @@ void main_menu() {
         "|                                             |",
         "| 9. Delete Transaction                       |",
         "|                                             |",
-        "| 10. Minimize Cashflow                       |",
+        "| 10. Delete Participant                      |",
         "|                                             |",
-        "| 11. Exit                                    |",
+        "| 11. New Cashflow                            |",
+        "|                                             |",
+        "| 12. Minimize Cashflow                       |",
+        "|                                             |",
+        "| 13. Exit                                    |",
         "+---------------------------------------------+"
     };
 
@@ -1592,7 +1620,87 @@ bool validateAmount(string amount)
     }
 }
 
+void newCashFlow() {
+    const char* participantsFile = "participants.dat";
+    const char* transactionsFile = "transactions.dat";
+
+    // Try to delete participants.dat if it exists
+    if (remove(participantsFile) == 0) {
+        cout << participantsFile << " has been deleted successfully." << endl;
+    } else {
+        cout << participantsFile << " does not exist or could not be deleted." << endl;
+    }
+
+    // Try to delete transactions.dat if it exists
+    if (remove(transactionsFile) == 0) {
+        cout << transactionsFile << " has been deleted successfully." << endl;
+    } else {
+        cout << transactionsFile << " does not exist or could not be deleted." << endl;
+    }
+    createNewParticipant();
+}
+
+void main_page() {
+    intro();
+    int choiceMain;
+
+    do {
+        main_menu();
+        cout << "Enter your choice: ";
+        cin >> choiceMain;
+        if (choiceMain == 1) {
+            cin.ignore();
+            createNewParticipant();
+        }else if (choiceMain == 2) {
+            cin.ignore();
+            recordTransaction();
+        }else if (choiceMain == 3) {
+            cin.ignore();
+            displayParticipants();
+        }else if (choiceMain == 4) {
+            cin.ignore();
+            displayParticipantsAlphabetically();
+        }else if (choiceMain == 5) {
+            cin.ignore();
+            displayTransactions();
+        }else if (choiceMain == 6) {
+            cin.ignore();
+            displayTransactionsInDescendingOrder();
+        }else if (choiceMain == 7) {
+            cin.ignore();
+            editParticipantPaymentModes();
+        }else if (choiceMain == 8) {
+            cin.ignore();
+            editTransactionAmount();
+        }else if (choiceMain == 9) {
+            cin.ignore();
+            deleteTransaction();
+        }else if (choiceMain == 10) {
+            cin.ignore();
+            deleteParticipant();
+        }else if (choiceMain == 11) {
+            cin.ignore();
+            char choice;
+            cout << "Are you sure that you want to start a new cashflow (all your data will be deleted and a new file will be started)? (y/n): ";
+            cin >> choice;
+            if (choice == 'y' || choice == 'Y') 
+            cin.ignore();
+            newCashFlow();
+        }else if (choiceMain == 12) {
+            cin.ignore();
+            minimizeCashFlow();
+        }else if (choiceMain == 13) {
+            cin.ignore();
+            clear_screen();
+            exitscr();
+        }else {
+            cout << "INVALID CHOICE" << endl;
+        }
+    }while (choiceMain != 13);
+}
+
 int main()
 {
+    main_page();
     return 0;
 }
